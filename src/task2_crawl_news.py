@@ -26,10 +26,11 @@ def setup_directory():
 
 # TODO: Điền danh sách URL bài báo cần crawl
 ARTICLE_URLS = [
-    # Ví dụ:
-    # "https://vnexpress.net/...",
-    # "https://tuoitre.vn/...",
-    # "https://thanhnien.vn/...",
+    "https://vnexpress.net/ca-si-miu-le-bi-bat-voi-cao-buoc-to-chuc-su-dung-ma-tuy-5074769.html",
+    "https://tuoitre.vn/hoa-hau-hhen-nie-va-nghe-si-xuan-bac-keu-goi-gioi-tre-khong-thu-ma-tuy-du-chi-mot-lan-20231216141246353.htm",
+    "https://tuoitre.vn/sao-han-lee-sun-kyun-duoc-phat-hien-da-chet-trong-xe-hoi-ngoai-cong-vien-20231227092224243.htm",
+    "https://tuoitre.vn/yoo-ah-in-bi-cao-buoc-dung-chat-cam-181-lan-ep-nguoi-khac-hut-can-sa-20231102143132349.htm",
+    "https://vnexpress.net/ma-tuy-trong-loi-song-showbiz-5074606.html"
 ]
 
 
@@ -56,7 +57,25 @@ async def crawl_article(url: str) -> dict:
     #         "date_crawled": datetime.now().isoformat(),
     #         "content_markdown": result.markdown,
     #     }
-    raise NotImplementedError("Implement crawl_article")
+    # HOÀN THÀNH TODO: Triển khai logic crawling bằng AsyncWebCrawler
+    async with AsyncWebCrawler() as crawler:
+        result = await crawler.arun(url=url)
+        
+        # Lấy title từ metadata an toàn, nếu không có thì fallback về title trong HTML đằng sau kết quả
+        title = "Unknown"
+        if result.metadata:
+            title = result.metadata.get("title") or result.metadata.get("og:title")
+        
+        # Nếu vẫn không tìm thấy title từ metadata, lấy tạm dòng đầu tiên hoặc để Unknown
+        if not title or title == "Unknown":
+            title = url.split("/")[-1].replace(".html", "").replace(".htm", "").replace("-", " ")
+
+        return {
+            "url": url,
+            "title": title.strip(),
+            "date_crawled": datetime.now().isoformat(),
+            "content_markdown": result.markdown if result.markdown else "",
+        }
 
 
 async def crawl_all():
@@ -70,7 +89,7 @@ async def crawl_all():
         # Lưu file JSON
         filename = f"article_{i:02d}.json"
         filepath = DATA_DIR / filename
-        filepath.write_text(json.dumps(article, ensure_ascii=False, indent=2))
+        filepath.write_text(json.dumps(article, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"  ✓ Saved: {filepath}")
 
 
